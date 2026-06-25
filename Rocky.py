@@ -59,4 +59,13 @@ class RockyApp:
     def istening(self):
         if not self.is_listening:
             self.is_listening=True
-            self.mic_button.config(state=tk.NORMAL)
+            self.mic_button.config(text="Listening..", bg="#b85d53")
+            self.text_output.config(state=tk.NORMAL)
+            self.text_output.delete("1.0",tk.END)
+            self.text_output.config(state=tk.DISABLED)
+
+            threading.Thread(target=self.process_audio, daemon=True).start()
+        else:
+            self.is_listening=False
+            self.reset_ui()
+    
