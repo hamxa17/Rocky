@@ -13,7 +13,7 @@ class RockyApp:
         self.font_family = "Roboto Mono"
 
         self.root.configure(bg=self.bg_colour)
-        self.recogniser = sr.Recogniser()
+        self.recogniser = sr.Recognizer()
         self.is_listening = False
 
         self.title_label = tk.Label(
@@ -38,7 +38,7 @@ class RockyApp:
             pady=10,
             borderwidth=0,           
             cursor="hand2",
-            command=self.toggle_listening
+            command=self.listening
         )
         self.mic_button.pack(pady=20)
 
@@ -56,7 +56,7 @@ class RockyApp:
         )
         self.text_output.pack(pady=20)
 
-    def istening(self):
+    def listening(self):
         if not self.is_listening:
             self.is_listening=True
             self.mic_button.config(text="Listening..", bg="#b85d53")
@@ -69,3 +69,38 @@ class RockyApp:
             self.is_listening=False
             self.reset_ui()
     
+    def process_audio(self):
+        with sr.Microphone() as source:
+            try:
+                self.recogniser.adjust_for_ambient_noise(source, duration=1)
+
+                audio_data = self.recogniser.listen(source, timeout=5, phrase_time_limit=30)
+
+                if not self.is_listening:
+                    return
+                
+                translated_text = self.recogniser.recognize_google(audio_data)
+                self.update_output_text(translated_text)
+
+            except sr.UnknownValueError:
+                self.update_output_text("Rocky did not understand")
+            except sr.RequestError:
+                self.update_output_text("Translation failed. Check yout internet connection.")
+            except Exception as e:
+                self.update_output_text(f"Error: {str(e)}")
+            finally:
+                self.is_listening = False
+                self.root.after(0, self.reset_ui)
+
+    def update_output_text(self, text):
+        self.text_output.config(state=tk.NORMAL)
+        self.text_output.delete("1.0", tk.END)
+        self.text_output.insert(tk.END, text)
+        self.text_output.config(state=tk.DISABLED)
+
+    def reset_ui(self):
+        self.mic_button.config(text="Speak", bg=self.text_colour)
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = RockyApp(root)
+    root.mainloop()
